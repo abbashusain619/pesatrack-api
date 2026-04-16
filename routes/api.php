@@ -4,7 +4,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\WebhookLoggerController; // Add this at the top
+use App\Http\Controllers\Api\WebhookLoggerController;
+use Illuminate\Support\Facades\Auth;
 
 Route::post('/register', function (Request $request) {
     $user = User::create([
@@ -14,6 +15,19 @@ Route::post('/register', function (Request $request) {
         'base_currency' => $request->base_currency ?? 'USD',
     ]);
     $token = $user->createToken('auth')->plainTextToken;
+    return response()->json(['user' => $user, 'token' => $token]);
+});
+
+Route::post('/login', function (Request $request) {
+    $credentials = $request->only('email', 'password');
+    
+    if (!Auth::attempt($credentials)) {
+        return response()->json(['message' => 'Invalid credentials'], 401);
+    }
+    
+    $user = Auth::user();
+    $token = $user->createToken('auth')->plainTextToken;
+    
     return response()->json(['user' => $user, 'token' => $token]);
 });
 
