@@ -19,6 +19,10 @@ class Transaction extends Model
         'transaction_date',
     ];
 
+    protected $casts = [
+        'transaction_date' => 'datetime',
+    ];
+
     // Relationship with Account
     public function account()
     {

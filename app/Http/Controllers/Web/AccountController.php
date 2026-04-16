@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Account;
@@ -11,7 +11,12 @@ class AccountController extends Controller
     public function index()
     {
         $accounts = Account::where('user_id', auth()->id())->get();
-        return response()->json($accounts);
+        return view('accounts.index', compact('accounts'));
+    }
+
+    public function create()
+    {
+        return view('accounts.create');
     }
 
     public function store(Request $request)
@@ -23,7 +28,7 @@ class AccountController extends Controller
             'balance' => 'nullable|numeric|min:0',
         ]);
 
-        $account = Account::create([
+        Account::create([
             'user_id' => auth()->id(),
             'name' => $validated['name'],
             'type' => $validated['type'],
@@ -31,40 +36,32 @@ class AccountController extends Controller
             'balance' => $validated['balance'] ?? 0,
         ]);
 
-        return response()->json($account, 201);
+        return redirect()->route('accounts.index')->with('success', 'Account created.');
     }
 
-    public function show(Account $account)
+    public function edit(Account $account)
     {
-        if ($account->user_id !== auth()->id()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-        return response()->json($account);
+        if ($account->user_id !== auth()->id()) abort(403);
+        return view('accounts.edit', compact('account'));
     }
 
     public function update(Request $request, Account $account)
     {
-        if ($account->user_id !== auth()->id()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
+        if ($account->user_id !== auth()->id()) abort(403);
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'type' => 'sometimes|in:mpesa,bank,cash',
             'currency' => 'sometimes|string|size:3',
             'balance' => 'sometimes|numeric|min:0',
         ]);
-
         $account->update($validated);
-        return response()->json($account);
+        return redirect()->route('accounts.index')->with('success', 'Account updated.');
     }
 
     public function destroy(Account $account)
     {
-        if ($account->user_id !== auth()->id()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        if ($account->user_id !== auth()->id()) abort(403);
         $account->delete();
-        return response()->json(['message' => 'Account deleted']);
+        return redirect()->route('accounts.index')->with('success', 'Account deleted.');
     }
 }

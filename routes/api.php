@@ -20,11 +20,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) { return $request->user(); });
     
     // Account routes
-    Route::apiResource('accounts', App\Http\Controllers\Api\AccountController::class);
+    Route::apiResource('accounts', App\Http\Controllers\Api\AccountController::class)
+        ->names('api.accounts');
 
     // Networth routes
     Route::get('/networth', [App\Http\Controllers\Api\NetWorthController::class, 'index']);
 
     // Transaction routes
-    Route::apiResource('transactions', App\Http\Controllers\Api\TransactionController::class);
+    Route::apiResource('transactions', App\Http\Controllers\Api\TransactionController::class)
+        ->names('api.transactions');
 });
