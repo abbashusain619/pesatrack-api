@@ -5,17 +5,33 @@
     <h1 class="text-2xl font-bold mb-4">Welcome, {{ Auth::user()->name }}</h1>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <!-- Net worth card -->
-        <div class="bg-white dark:bg-gray-300 rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-2">Net Worth</h2>
-            <p class="text-3xl font-bold text-green-600">{{ number_format($netWorth, 2) }} {{ $baseCurrency }}</p>
+        <!-- Net worth card with currency selector -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h2 class="text-xl font-semibold mb-2">Net Worth</h2>
+                    <p class="text-3xl font-bold text-green-600">{{ number_format($netWorth, 2) }} {{ $displayCurrency }}</p>
+                </div>
+                <div class="w-48">
+                    <form method="GET" action="{{ route('dashboard') }}" id="currency-form">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">View in:</label>
+                        <select name="currency" id="currency-select" class="block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-md shadow-sm">
+                            @foreach($currencies as $currency)
+                                <option value="{{ $currency->code }}" {{ $displayCurrency == $currency->code ? 'selected' : '' }}>
+                                    {{ $currency->code }} - {{ $currency->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </form>
+                </div>
+            </div>
             @if(count($conversionErrors))
                 <p class="text-sm text-red-500 mt-2">⚠️ {{ implode(', ', $conversionErrors) }}</p>
             @endif
         </div>
 
         <!-- Accounts summary card -->
-        <div class="bg-white dark:bg-gray-400 rounded-lg shadow p-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 class="text-xl font-semibold mb-2">Accounts</h2>
             <ul>
                 @foreach($accounts as $account)
@@ -25,12 +41,12 @@
                     </li>
                 @endforeach
             </ul>
-            <a href="{{ route('accounts.index') }}" class="text-white-600 hover:underline text-sm mt-2 inline-block">Manage accounts →</a>
+            <a href="{{ route('accounts.index') }}" class="text-blue-600 hover:underline text-sm mt-2 inline-block">Manage accounts →</a>
         </div>
     </div>
 
     <!-- Recent transactions -->
-    <div class="bg-white dark:bg-gray-300 rounded-lg shadow p-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-semibold">Recent Transactions</h2>
             <a href="{{ route('transactions.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded text-sm">+ New Transaction</a>
@@ -64,4 +80,10 @@
         @endif
     </div>
 </div>
+
+<script>
+    document.getElementById('currency-select').addEventListener('change', function() {
+        document.getElementById('currency-form').submit();
+    });
+</script>
 @endsection

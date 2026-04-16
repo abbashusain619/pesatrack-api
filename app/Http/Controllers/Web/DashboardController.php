@@ -13,6 +13,9 @@ class DashboardController extends Controller
     {
         $user = $request->user();
         $baseCurrency = $user->base_currency ?? 'USD';
+        
+        // Get display currency from query parameter, default to base currency
+        $displayCurrency = $request->query('currency', $baseCurrency);
 
         $accounts = $user->accounts;
         $recentTransactions = Transaction::where('user_id', $user->id)
@@ -21,15 +24,16 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
-        // Net worth calculation
-        $total = 0;
-        $errors = [];
+        // Step 1: Calculate net worth in base currency
+        $netWorthInBase = 0;
+        $conversionErrors = [];
+        
         foreach ($accounts as $account) {
             $currency = $account->currency;
             $balance = $account->balance;
 
             if ($currency === $baseCurrency) {
-                $total += $balance;
+                $netWorthInBase += $balance;
                 continue;
             }
 
@@ -37,18 +41,35 @@ class DashboardController extends Controller
             $rateTo = Currency::where('code', $baseCurrency)->value('rate_to_usd');
 
             if (!$rateFrom || !$rateTo) {
-                $errors[] = "Missing exchange rate for $currency or $baseCurrency";
+                $conversionErrors[] = "Missing exchange rate for $currency or $baseCurrency";
                 continue;
             }
-            $total += $balance * ($rateFrom / $rateTo);
+            $netWorthInBase += $balance * ($rateFrom / $rateTo);
         }
+
+        // Step 2: Convert net worth to display currency (if different from base)
+       $netWorth = $netWorthInBase;
+        if ($displayCurrency !== $baseCurrency) {
+            $rateFrom = Currency::where('code', $baseCurrency)->value('rate_to_usd');
+            $rateTo = Currency::where('code', $displayCurrency)->value('rate_to_usd');
+            if ($rateFrom && $rateTo) {
+                $netWorth = $netWorthInBase * ($rateFrom / $rateTo);  // FIXED
+            } else {
+                $conversionErrors[] = "Cannot convert to $displayCurrency (missing rate)";
+            }
+        }
+
+        // Get all currencies for the dropdown
+        $currencies = Currency::orderBy('code')->get();
 
         return view('dashboard', [
             'accounts' => $accounts,
             'recentTransactions' => $recentTransactions,
-            'netWorth' => round($total, 2),
+            'netWorth' => round($netWorth, 2),
             'baseCurrency' => $baseCurrency,
-            'conversionErrors' => $errors,
+            'displayCurrency' => $displayCurrency,
+            'currencies' => $currencies,
+            'conversionErrors' => $conversionErrors,
         ]);
     }
 }

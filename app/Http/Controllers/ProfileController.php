@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Currency;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,13 +15,14 @@ class ProfileController extends Controller
     /**
      * Display the user's profile form.
      */
-    public function edit(Request $request): View
+   public function edit(Request $request): View
     {
         return view('profile.edit', [
             'user' => $request->user(),
+            'header' => __('Profile'), // Add this line
+            'currencies' => Currency::orderBy('code')->get(), // For the dropdown later
         ]);
     }
-
     /**
      * Update the user's profile information.
      */
@@ -56,5 +58,18 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+    
+    public function updateCurrency(Request $request)
+    {
+        $request->validate([
+            'base_currency' => 'required|string|size:3',
+        ]);
+
+        auth()->user()->update([
+            'base_currency' => $request->base_currency,
+        ]);
+
+        return back()->with('status', 'currency-updated');
     }
 }
