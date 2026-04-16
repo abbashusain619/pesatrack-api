@@ -4,6 +4,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\WebhookLoggerController; // Add this at the top
 
 Route::post('/register', function (Request $request) {
     $user = User::create([
@@ -30,3 +31,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('transactions', App\Http\Controllers\Api\TransactionController::class)
         ->names('api.transactions');
 });
+
+// Webhook logger route (no authentication)
+Route::post('/webhooks/{provider?}', WebhookLoggerController::class);
