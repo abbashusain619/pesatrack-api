@@ -30,6 +30,12 @@ Route::middleware('auth')->group(function () {
 
     // Transaction management (web)
     Route::resource('transactions', TransactionController::class);
+    
+    // Mock Route
+    Route::get('/test-balance', function () {
+        $provider = app(\App\Services\PaymentProviders\AccountProviderInterface::class);
+        return response()->json($provider->getBalance('255712345678'));
+    });
 });
 
 // Guest routes (login, register, password reset are in auth.php)

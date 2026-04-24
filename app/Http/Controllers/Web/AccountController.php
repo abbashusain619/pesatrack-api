@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Account;
+use App\Services\PaymentProviders\AccountProviderInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -20,18 +21,43 @@ class AccountController extends Controller
         return view('accounts.create');
     }
 
-    public function store(Request $request)
+    public function store(Request $request, AccountProviderInterface $provider)
     {
         $validated = $request->validate([
             'name'                  => 'required|string|max:255',
             'type'                  => 'required|in:mobile_money,bank,cash',
-            'currency'              => 'required|string|size:3',
+            'currency'              => 'nullable|string|size:3', // now nullable – we auto-set for mobile money
             'balance'               => 'nullable|numeric|min:0',
             'mobile_provider'       => 'nullable|string|required_if:type,mobile_money',
             'phone_number'          => 'nullable|string|required_if:type,mobile_money',
             'bank_account_number'   => 'nullable|string|required_if:type,bank',
             'bank_code'             => 'nullable|string|required_if:type,bank',
         ]);
+
+        // Auto‑set currency for mobile money based on provider
+        if ($validated['type'] === 'mobile_money' && isset($validated['mobile_provider'])) {
+            $currencyMap = [
+                'mpesa_tz'   => 'TZS', 'tigo_pesa' => 'TZS', 'airtel_tz'  => 'TZS',
+                'halopesa'   => 'TZS', 'azampesa'  => 'TZS',
+                'mpesa_ke'   => 'KES', 'airtel_ke' => 'KES',
+                'mtn_mobile_money' => 'UGX', 'vodafone_cash' => 'GHS',
+            ];
+            $validated['currency'] = $currencyMap[$validated['mobile_provider']] ?? 'TZS';
+        }
+
+        // Fallback currency if still empty
+        if (empty($validated['currency'])) {
+            $validated['currency'] = 'TZS';
+        }
+
+        // Verify the account using the provider wrapper (mock for now)
+        $identifier = $validated['phone_number'] ?? $validated['bank_account_number'] ?? null;
+        if ($identifier) {
+            $verification = $provider->verifyAccount($identifier, $validated['type']);
+            if (!$verification['valid']) {
+                return back()->withInput()->withErrors(['account' => $verification['message']]);
+            }
+        }
 
         $account = Account::create([
             'user_id'               => Auth::id(),
@@ -80,7 +106,7 @@ class AccountController extends Controller
         ]);
 
         $account->update($validated);
-        return redirect()->route('accounts.index')->with('success', 'Account updated.');
+        return redirect()->route('accounts.index')->with('success', 'Account updated successfully.');
     }
 
     public function destroy(Account $account)
@@ -89,6 +115,6 @@ class AccountController extends Controller
             abort(403);
         }
         $account->delete();
-        return redirect()->route('accounts.index')->with('success', 'Account deleted.');
+        return redirect()->route('accounts.index')->with('success', 'Account deleted successfully.');
     }
 }
