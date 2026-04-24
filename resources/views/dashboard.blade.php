@@ -6,7 +6,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <!-- Net worth card with currency selector -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div class="bg-white dark:bg-gray-400 rounded-lg shadow p-6">
             <div class="flex justify-between items-start">
                 <div>
                     <h2 class="text-xl font-semibold mb-2">Net Worth</h2>
@@ -14,8 +14,8 @@
                 </div>
                 <div class="w-48">
                     <form method="GET" action="{{ route('dashboard') }}" id="currency-form">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">View in:</label>
-                        <select name="currency" id="currency-select" class="block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-md shadow-sm">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-800 mb-1">View in:</label>
+                        <select name="currency" id="currency-select" class="block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-800 rounded-md shadow-sm">
                             @foreach($currencies as $currency)
                                 <option value="{{ $currency->code }}" {{ $displayCurrency == $currency->code ? 'selected' : '' }}>
                                     {{ $currency->code }} - {{ $currency->name }}
@@ -31,7 +31,7 @@
         </div>
 
         <!-- Accounts summary card -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div class="bg-white dark:bg-gray-400 rounded-lg shadow p-6">
             <h2 class="text-xl font-semibold mb-2">Accounts</h2>
             <ul>
                 @foreach($accounts as $account)
@@ -46,7 +46,7 @@
     </div>
 
     <!-- Recent transactions -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div class="bg-white dark:bg-gray-400 rounded-lg shadow p-6">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-semibold">Recent Transactions</h2>
             <a href="{{ route('transactions.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded text-sm">+ New Transaction</a>

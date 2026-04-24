@@ -15,26 +15,37 @@ class ProfileController extends Controller
     /**
      * Display the user's profile form.
      */
-   public function edit(Request $request): View
+    public function edit(Request $request): View
     {
         return view('profile.edit', [
             'user' => $request->user(),
-            'header' => __('Profile'), // Add this line
-            'currencies' => Currency::orderBy('code')->get(), // For the dropdown later
+            'header' => __('Profile'),
+            'currencies' => Currency::orderBy('code')->get(),
         ]);
     }
+
     /**
      * Update the user's profile information.
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        
+        // Get validated data from the form request
+        $validated = $request->validated();
+        
+        // Add country if present in the request (not in ProfileUpdateRequest by default)
+        if ($request->has('country')) {
+            $validated['country'] = $request->input('country');
+        }
+        
+        $user->fill($validated);
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        $user->save();
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
@@ -60,6 +71,9 @@ class ProfileController extends Controller
         return Redirect::to('/');
     }
     
+    /**
+     * Update the user's base currency.
+     */
     public function updateCurrency(Request $request)
     {
         $request->validate([

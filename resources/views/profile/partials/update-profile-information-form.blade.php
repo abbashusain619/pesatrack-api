@@ -47,6 +47,22 @@
             @endif
         </div>
 
+        <!-- Country Dropdown -->
+        <div>
+            <x-input-label for="country" :value="__('Country')" />
+            <select id="country" name="country" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+                <option value="">-- Select Country --</option>
+                <option value="TZ" {{ old('country', $user->country) == 'TZ' ? 'selected' : '' }}>Tanzania</option>
+                <option value="KE" {{ old('country', $user->country) == 'KE' ? 'selected' : '' }}>Kenya</option>
+                <option value="UG" {{ old('country', $user->country) == 'UG' ? 'selected' : '' }}>Uganda</option>
+                <option value="RW" {{ old('country', $user->country) == 'RW' ? 'selected' : '' }}>Rwanda</option>
+                <option value="BI" {{ old('country', $user->country) == 'BI' ? 'selected' : '' }}>Burundi</option>
+                <option value="SS" {{ old('country', $user->country) == 'SS' ? 'selected' : '' }}>South Sudan</option>
+                <option value="CD" {{ old('country', $user->country) == 'CD' ? 'selected' : '' }}>DR Congo</option>
+            </select>
+            <x-input-error class="mt-2" :messages="$errors->get('country')" />
+        </div>
+
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>
 
