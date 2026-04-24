@@ -35,6 +35,7 @@ class RegisteredUserController extends Controller
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'base_currency' => ['required', 'string', 'size:3'],
+            'country' => ['nullable', 'string', 'size:2'], // Add country validation
         ]);
 
         $user = User::create([
@@ -42,6 +43,7 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'base_currency' => $request->base_currency,
+            'country' => $request->country, // Store country (nullable)
         ]);
 
         event(new Registered($user));
