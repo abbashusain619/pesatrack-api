@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Account extends Model
@@ -11,17 +10,24 @@ class Account extends Model
     use HasFactory;
 
     protected $fillable = [
-    'user_id', 
-    'name', 
-    'type', 
-    'currency', 
-    'balance',
-    'phone_number',
-    'bank_account_number',
-    'bank_code',
-    'verified_at',
-    'verification_status',
-];
+        'user_id',
+        'name',
+        'type',
+        'currency',
+        'balance',
+        'phone_number',
+        'mobile_provider',
+        'bank_account_number',
+        'bank_code',
+        'verified_at',
+        'verification_status',
+        'is_synced',
+    ];
+
+    protected $casts = [
+        'is_synced' => 'boolean',
+        'verified_at' => 'datetime',
+    ];
 
     public function user()
     {
@@ -31,5 +37,13 @@ class Account extends Model
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    protected static function booted()
+    {
+        static::deleting(function ($account) {
+            // Delete all related transactions first
+            $account->transactions()->delete();
+        });
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Services\PaymentProviders\AccountProviderInterface;
+use App\Models\Transaction; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -26,7 +27,7 @@ class AccountController extends Controller
         $validated = $request->validate([
             'name'                  => 'required|string|max:255',
             'type'                  => 'required|in:mobile_money,bank,cash',
-            'currency'              => 'nullable|string|size:3', // now nullable – we auto-set for mobile money
+            'currency'              => 'nullable|string|size:3',
             'balance'               => 'nullable|numeric|min:0',
             'mobile_provider'       => 'nullable|string|required_if:type,mobile_money',
             'phone_number'          => 'nullable|string|required_if:type,mobile_money',
@@ -34,44 +35,73 @@ class AccountController extends Controller
             'bank_code'             => 'nullable|string|required_if:type,bank',
         ]);
 
-        // Auto‑set currency for mobile money based on provider
-        if ($validated['type'] === 'mobile_money' && isset($validated['mobile_provider'])) {
-            $currencyMap = [
-                'mpesa_tz'   => 'TZS', 'tigo_pesa' => 'TZS', 'airtel_tz'  => 'TZS',
-                'halopesa'   => 'TZS', 'azampesa'  => 'TZS',
-                'mpesa_ke'   => 'KES', 'airtel_ke' => 'KES',
-                'mtn_mobile_money' => 'UGX', 'vodafone_cash' => 'GHS',
-            ];
-            $validated['currency'] = $currencyMap[$validated['mobile_provider']] ?? 'TZS';
-        }
-
-        // Fallback currency if still empty
-        if (empty($validated['currency'])) {
-            $validated['currency'] = 'TZS';
-        }
-
-        // Verify the account using the provider wrapper (mock for now)
         $identifier = $validated['phone_number'] ?? $validated['bank_account_number'] ?? null;
+        $providerName = $validated['mobile_provider'] ?? $validated['bank_code'] ?? null;
+
+        // 1. Verify the account
         if ($identifier) {
-            $verification = $provider->verifyAccount($identifier, $validated['type']);
+            $verification = $provider->verifyAccount($identifier, $validated['type'], $providerName);
             if (!$verification['valid']) {
                 return back()->withInput()->withErrors(['account' => $verification['message']]);
             }
         }
 
+        $isSynced = in_array($validated['type'], ['mobile_money', 'bank']);
+        $initialBalance = $validated['balance'] ?? 0;
+        $syncedTransactions = [];
+
+        // 2. If synced, fetch balance and recent transactions
+        if ($isSynced && $identifier) {
+            $balanceData = $provider->getBalance($identifier, $validated['type'], $providerName);
+            if ($balanceData['success']) {
+                $initialBalance = $balanceData['balance'];
+                // Always use API currency for synced accounts; override any user input
+                if (isset($balanceData['currency'])) {
+                    $validated['currency'] = $balanceData['currency'];
+                }
+            }
+
+            $txData = $provider->getTransactions($identifier, 30, $validated['type'], $providerName);
+            if ($txData['success']) {
+                $syncedTransactions = $txData['transactions'];
+            }
+        } else {
+            // For cash accounts, ensure currency is set (fallback to TZS if empty)
+            if (empty($validated['currency'])) {
+                $validated['currency'] = 'TZS';
+            }
+        }
+
+        // 3. Create account
         $account = Account::create([
             'user_id'               => Auth::id(),
             'name'                  => $validated['name'],
             'type'                  => $validated['type'],
             'currency'              => strtoupper($validated['currency']),
-            'balance'               => $validated['balance'] ?? 0,
+            'balance'               => $initialBalance,
             'mobile_provider'       => $validated['mobile_provider'] ?? null,
             'phone_number'          => $validated['phone_number'] ?? null,
             'bank_account_number'   => $validated['bank_account_number'] ?? null,
             'bank_code'             => $validated['bank_code'] ?? null,
             'verified_at'           => now(),
             'verification_status'   => 'verified',
+            'is_synced'             => $isSynced,
         ]);
+
+        // 4. Insert synced transactions
+        foreach ($syncedTransactions as $tx) {
+            Transaction::create([
+                'user_id'           => Auth::id(),
+                'account_id'        => $account->id,
+                'category_id'       => null,
+                'type'              => $tx['type'] ?? 'expense',
+                'amount'            => $tx['amount'],
+                'description'       => $tx['description'] ?? null,
+                'reference'         => $tx['reference'] ?? null,
+                'transaction_date'  => $tx['transaction_date'] ?? now(),
+                'is_synced'         => true,
+            ]);
+        }
 
         return redirect()->route('accounts.index')->with('success', 'Account created successfully.');
     }
@@ -98,12 +128,27 @@ class AccountController extends Controller
             abort(403);
         }
 
+        if ($account->is_synced) {
+            // Synced accounts can only edit their name
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+            ]);
+            $account->update($validated);
+            return redirect()->route('accounts.index')->with('success', 'Account name updated.');
+        }
+
+        // Manual account (cash): allow editing name, type, currency, balance
         $validated = $request->validate([
-            'name'      => 'sometimes|string|max:255',
-            'type'      => 'sometimes|in:mobile_money,bank,cash',
-            'currency'  => 'sometimes|string|size:3',
-            'balance'   => 'sometimes|numeric|min:0',
+            'name'     => 'required|string|max:255',
+            'type'     => 'required|in:mobile_money,bank,cash',
+            'currency' => 'nullable|string|size:3',
+            'balance'  => 'nullable|numeric|min:0',
         ]);
+
+        // Prevent converting a manual account into a synced one (would break sync logic)
+        if (in_array($validated['type'], ['mobile_money', 'bank'])) {
+            return back()->withErrors(['type' => 'Cannot convert a manual account to a synced account. Please delete and create a new synced account instead.']);
+        }
 
         $account->update($validated);
         return redirect()->route('accounts.index')->with('success', 'Account updated successfully.');

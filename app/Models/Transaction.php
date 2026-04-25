@@ -12,15 +12,18 @@ class Transaction extends Model
     protected $fillable = [
         'user_id',
         'account_id',
+        'category_id',
         'type',
         'amount',
         'description',
         'reference',
         'transaction_date',
+        'is_synced',
     ];
 
     protected $casts = [
         'transaction_date' => 'datetime',
+        'is_synced' => 'boolean',
     ];
 
     // Relationship with Account
@@ -33,5 +36,11 @@ class Transaction extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    // Relationship with Category
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
     }
 }
