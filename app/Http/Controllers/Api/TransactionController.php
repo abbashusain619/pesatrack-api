@@ -30,7 +30,6 @@ class TransactionController extends Controller
                 $query->where('category_id', $request->category_id);
             }
         }
-        }
         if ($request->filled('account_id')) {
             $query->where('account_id', $request->account_id);
         }
