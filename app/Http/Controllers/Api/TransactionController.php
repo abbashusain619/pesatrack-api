@@ -11,12 +11,42 @@ use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $transactions = Transaction::where('user_id', auth()->id())
-            ->with(['account', 'category'])
-            ->orderBy('transaction_date', 'desc')
-            ->get();
+        $query = Transaction::where('user_id', auth()->id())
+            ->with(['account', 'category']);
+
+        // Apply filters
+        if ($request->filled('from_date')) {
+            $query->whereDate('transaction_date', '>=', $request->from_date);
+        }
+        if ($request->filled('to_date')) {
+            $query->whereDate('transaction_date', '<=', $request->to_date);
+        }
+        if ($request->filled('category_id')) {
+            if ($request->category_id === 'null') {
+                $query->whereNull('category_id');
+            } else {
+                $query->where('category_id', $request->category_id);
+            }
+        }
+        }
+        if ($request->filled('account_id')) {
+            $query->where('account_id', $request->account_id);
+        }
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+        if ($request->filled('search')) {
+            $search = '%' . $request->search . '%';
+            $query->where(function ($q) use ($search) {
+                $q->where('description', 'like', $search)
+                ->orWhere('reference', 'like', $search);
+            });
+        }
+
+        $transactions = $query->orderBy('transaction_date', 'desc')->get();
+
         return response()->json($transactions);
     }
 

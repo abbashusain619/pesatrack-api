@@ -30,6 +30,9 @@ Route::middleware('auth')->group(function () {
 
     // Transaction management (web)
     Route::resource('transactions', TransactionController::class);
+
+    // Budget Route
+    Route::resource('budgets', App\Http\Controllers\Web\BudgetController::class);
     
     // Mock Route
     Route::get('/test-balance', function () {

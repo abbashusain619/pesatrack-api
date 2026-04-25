@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Currency;
 use App\Models\Transaction;
+use App\Models\Budget;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -24,7 +25,7 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
-        // Step 1: Calculate net worth in base currency
+        // Calculate net worth in base currency
         $netWorthInBase = 0;
         $conversionErrors = [];
         
@@ -47,7 +48,7 @@ class DashboardController extends Controller
             $netWorthInBase += $balance * ($rateFrom / $rateTo);
         }
 
-        // Step 2: Convert net worth to display currency (if different from base)
+        // Convert net worth to display currency (if different from base)
        $netWorth = $netWorthInBase;
         if ($displayCurrency !== $baseCurrency) {
             $rateFrom = Currency::where('code', $baseCurrency)->value('rate_to_usd');
@@ -62,14 +63,23 @@ class DashboardController extends Controller
         // Get all currencies for the dropdown
         $currencies = Currency::orderBy('code')->get();
 
-        return view('dashboard', [
-            'accounts' => $accounts,
-            'recentTransactions' => $recentTransactions,
-            'netWorth' => round($netWorth, 2),
-            'baseCurrency' => $baseCurrency,
-            'displayCurrency' => $displayCurrency,
-            'currencies' => $currencies,
-            'conversionErrors' => $conversionErrors,
-        ]);
+        $budgets = collect(); // default empty collection
+        try {
+            $budgetsQuery = Budget::where('user_id', $user->id)->with('category');
+            // only apply activeForDate if the method exists
+            if (method_exists(Budget::class, 'scopeActiveForDate')) {
+                $budgetsQuery->activeForDate();
+            }
+            $budgets = $budgetsQuery->get()->map(function ($budget) {
+                $budget->spent = $budget->spentAmount();
+                $budget->percentage = $budget->amount > 0 ? ($budget->spent / $budget->amount) * 100 : 0;
+                return $budget;
+            });
+        } catch (\Exception $e) {
+            \Log::error('Budget error: ' . $e->getMessage());
+            // $budgets stays empty collection
+        }
+
+        return view('dashboard', compact('netWorth', 'displayCurrency', 'currencies', 'accounts', 'recentTransactions', 'budgets', 'conversionErrors'));
     }
 }

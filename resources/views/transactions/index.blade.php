@@ -2,12 +2,45 @@
 
 @section('content')
 <div class="container mx-auto px-4 py-8">
-    <h1 class="text-2xl font-bold mb-4">Transactions</h1>
-    <a href="{{ route('transactions.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded mb-4 inline-block">+ Add Transaction</a>
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold">Transactions</h1>
+        <a href="{{ route('transactions.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded">+ Add Transaction</a>
+    </div>
 
     @if(session('success'))
         <div class="bg-green-100 text-green-800 p-2 rounded mb-4">{{ session('success') }}</div>
     @endif
+
+    <!-- FILTER FORM (inserted here) -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6">
+        <form method="GET" action="{{ route('transactions.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <input type="text" name="search" placeholder="Search description/reference" value="{{ request('search') }}" class="border rounded px-3 py-2">
+            <input type="date" name="from_date" placeholder="From date" value="{{ request('from_date') }}" class="border rounded px-3 py-2">
+            <input type="date" name="to_date" placeholder="To date" value="{{ request('to_date') }}" class="border rounded px-3 py-2">
+            <select name="category_id" class="border rounded px-3 py-2">
+                <option value="">All Categories</option>
+                <option value="null" {{ request('category_id') == 'null' ? 'selected' : '' }}>Uncategorized</option>
+                @foreach($categories as $category)
+                    <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                @endforeach
+            </select>
+            <select name="account_id" class="border rounded px-3 py-2">
+                <option value="">All Accounts</option>
+                @foreach($accounts as $account)
+                    <option value="{{ $account->id }}" {{ request('account_id') == $account->id ? 'selected' : '' }}>{{ $account->name }}</option>
+                @endforeach
+            </select>
+            <select name="type" class="border rounded px-3 py-2">
+                <option value="">All Types</option>
+                <option value="income" {{ request('type') == 'income' ? 'selected' : '' }}>Income</option>
+                <option value="expense" {{ request('type') == 'expense' ? 'selected' : '' }}>Expense</option>
+            </select>
+            <div class="md:col-span-2 flex gap-2">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Filter</button>
+                <a href="{{ route('transactions.index') }}" class="bg-gray-300 text-gray-800 px-4 py-2 rounded">Reset</a>
+            </div>
+        </form>
+    </div>
 
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
         <table class="min-w-full">
@@ -23,7 +56,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($transactions as $tx)
+                @forelse($transactions as $tx)
                 <tr class="border-t">
                     <td class="px-6 py-4">{{ $tx->transaction_date->format('Y-m-d') }}</td>
                     <td class="px-6 py-4">{{ $tx->account->name }}</td>
@@ -50,11 +83,15 @@
                         </form>
                     </td>
                 </tr>
-                @endforeach
+                @empty
+                <tr>
+                    <td colspan="7" class="px-6 py-4 text-center text-gray-500">No transactions found.</td>
+                </tr>
+                @endforelse
             </tbody>
         </table>
         <div class="px-6 py-4">
-            {{ $transactions->links() }}
+            {{ $transactions->appends(request()->query())->links() }}
         </div>
     </div>
 </div>

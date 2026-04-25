@@ -4,7 +4,7 @@
 <div class="container mx-auto px-4 py-8">
     <h1 class="text-2xl font-bold mb-4">Welcome, {{ Auth::user()->name }}</h1>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <div class="grid grid-cols-3 md:grid-cols-3 gap-2 mb-4">
         <!-- Net worth card with currency selector -->
         <div class="bg-white dark:bg-gray-400 rounded-lg shadow p-6">
             <div class="flex justify-between items-start">
@@ -25,7 +25,7 @@
                     </form>
                 </div>
             </div>
-            @if(count($conversionErrors))
+            @if(count($conversionErrors)) //this is line 28
                 <p class="text-sm text-red-500 mt-2">⚠️ {{ implode(', ', $conversionErrors) }}</p>
             @endif
         </div>
@@ -43,6 +43,38 @@
             </ul>
             <a href="{{ route('accounts.index') }}" class="text-blue-600 hover:underline text-sm mt-2 inline-block">Manage accounts →</a>
         </div>
+
+        <!-- Budget summary card -->
+        <div class="bg-white dark:bg-gray-400 rounded-lg shadow p-6">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-xl font-semibold">Budget Overview</h2>
+                <a href="{{ route('budgets.create') }}" class="text-blue-800 hover:underline text-sm">+ Add Budget</a>
+            </div>
+            @if(isset($budgets) && $budgets->count())
+                <div class="space-y-3">
+                    @foreach($budgets->take(3) as $budget)
+                        <div>
+                            <div class="flex justify-between text-sm">
+                                <span>{{ $budget->category->name }}</span>
+                                <span>{{ number_format($budget->spent, 2) }} / {{ number_format($budget->amount, 2) }}</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="rounded-full h-2" 
+                                    style="width: {{ min($budget->percentage, 100) }}%; background-color: 
+                                            {{ $budget->percentage < 80 ? '#10b981' : ($budget->percentage < 100 ? '#eab308' : '#ef4444') }};">
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                    @if($budgets->count())
+                        <div class="text-left"><a href="{{ route('budgets.index') }}" class="text-blue-600 hover:underline text-sm">View all budgets →</a></div>
+                    @endif
+                </div>
+            @else
+                <p class="text-gray-500">No budgets set. <a href="{{ route('budgets.create') }}" class="text-blue-600">Create one</a> to track spending.</p>
+            @endif
+        </div>
+
     </div>
 
     <!-- Recent transactions -->
