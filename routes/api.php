@@ -45,8 +45,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('transactions', App\Http\Controllers\Api\TransactionController::class)
         ->names('api.transactions');
 
-    // Budget routes
-    Route::apiResource('budgets', App\Http\Controllers\Api\BudgetController::class);
+    // Budgets
+    Route::apiResource('budgets', App\Http\Controllers\Api\BudgetController::class)
+        ->names('api.budgets');
+
+    // Categories
+    Route::apiResource('categories', App\Http\Controllers\Api\CategoryController::class)
+        ->names('api.categories');
+
+    // Reports
+    Route::get('/reports', [App\Http\Controllers\Api\ReportController::class, 'data']);
+    Route::get('/reports/export', [App\Http\Controllers\Api\ReportController::class, 'export']);
 });
 
 // Webhook logger route (no authentication)

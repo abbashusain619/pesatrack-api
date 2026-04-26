@@ -33,6 +33,17 @@ Route::middleware('auth')->group(function () {
 
     // Budget Route
     Route::resource('budgets', App\Http\Controllers\Web\BudgetController::class);
+    // Categories Route
+    Route::resource('categories', App\Http\Controllers\Web\CategoryController::class);
+
+    // Reports
+    Route::get('/reports', [App\Http\Controllers\Web\ReportController::class, 'index'])->name('reports.index');
+
+    Route::get('/reports/data', [App\Http\Controllers\Web\ReportController::class, 'data'])->name('reports.data');
+
+    Route::get('/reports/networth-data', [App\Http\Controllers\Web\ReportController::class, 'networthData'])->name('reports.networth');
+
+    Route::get('/reports/export', [App\Http\Controllers\Web\ReportController::class, 'export'])->name('reports.export');
     
     // Mock Route
     Route::get('/test-balance', function () {
