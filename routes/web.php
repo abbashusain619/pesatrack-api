@@ -44,6 +44,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/networth-data', [App\Http\Controllers\Web\ReportController::class, 'networthData'])->name('reports.networth');
 
     Route::get('/reports/export', [App\Http\Controllers\Web\ReportController::class, 'export'])->name('reports.export');
+
+    // Recurring Transactions
+    Route::resource('recurring', App\Http\Controllers\Web\RecurringTransactionController::class);
+    Route::get('/pending', [App\Http\Controllers\Web\RecurringTransactionController::class, 'pending'])->name('recurring.pending');
+    Route::patch('/pending/{transaction}/confirm', [App\Http\Controllers\Web\RecurringTransactionController::class, 'confirm'])->name('recurring.confirm');
+    Route::patch('/pending/{transaction}/reject', [App\Http\Controllers\Web\RecurringTransactionController::class, 'reject'])->name('recurring.reject');
     
     // Mock Route
     Route::get('/test-balance', function () {

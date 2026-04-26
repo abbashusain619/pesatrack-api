@@ -19,11 +19,13 @@ class Transaction extends Model
         'reference',
         'transaction_date',
         'is_synced',
+        'status',
     ];
 
     protected $casts = [
         'transaction_date' => 'datetime',
         'is_synced' => 'boolean',
+        'status' => 'string',
     ];
 
     // Relationship with Account

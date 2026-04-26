@@ -56,6 +56,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Reports
     Route::get('/reports', [App\Http\Controllers\Api\ReportController::class, 'data']);
     Route::get('/reports/export', [App\Http\Controllers\Api\ReportController::class, 'export']);
+
+    // Recurring Transactions
+   Route::apiResource('recurring', App\Http\Controllers\Api\RecurringTransactionController::class)
+    ->names('api.recurring');
+    Route::get('/recurring/pending', [App\Http\Controllers\Api\RecurringTransactionController::class, 'pending']);
+    Route::patch('/recurring/pending/{transaction}/confirm', [App\Http\Controllers\Api\RecurringTransactionController::class, 'confirm']);
+    Route::patch('/recurring/pending/{transaction}/reject', [App\Http\Controllers\Api\RecurringTransactionController::class, 'reject']);
 });
 
 // Webhook logger route (no authentication)

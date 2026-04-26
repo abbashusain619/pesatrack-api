@@ -1,0 +1,39 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class RecurringTransaction extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'user_id', 'account_id', 'category_id', 'type', 'amount',
+        'description', 'reference', 'frequency', 'start_date', 'end_date',
+        'next_date', 'interval_count', 'is_active'
+    ];
+
+    protected $casts = [
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'next_date' => 'date',
+        'is_active' => 'boolean',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function account()
+    {
+        return $this->belongsTo(Account::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+}

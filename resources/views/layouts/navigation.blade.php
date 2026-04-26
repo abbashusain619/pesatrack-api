@@ -30,6 +30,8 @@
                     <x-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
                         {{ __('Reports') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('recurring.index')" :active="request()->routeIs('recurring.*')">Recurring</x-nav-link>
+                    <x-nav-link :href="route('recurring.pending')" :active="request()->routeIs('recurring.pending')">Pending</x-nav-link>
                 </div>
             </div>
 
