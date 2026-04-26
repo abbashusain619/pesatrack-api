@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\Transaction;
+use App\Traits\ChecksBudgetAlerts;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
+     use ChecksBudgetAlerts;
+
     public function index(Request $request)
     {
         $query = Transaction::where('user_id', auth()->id())
@@ -67,7 +70,6 @@ class TransactionController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Verify category belongs to user or is system category
         if (isset($validated['category_id'])) {
             $category = Category::find($validated['category_id']);
             if ($category && $category->user_id && $category->user_id !== auth()->id()) {
@@ -87,7 +89,6 @@ class TransactionController extends Controller
                 'description' => $validated['description'] ?? null,
                 'reference' => $validated['reference'] ?? null,
                 'transaction_date' => $validated['transaction_date'] ?? now(),
-                // is_synced defaults to false
             ]);
 
             if ($validated['type'] === 'income') {
@@ -98,6 +99,10 @@ class TransactionController extends Controller
             $account->save();
 
             DB::commit();
+
+            // 🔔 Check for budget alerts
+            $this->checkBudgetsAfterTransaction($transaction);
+
             return response()->json($transaction->load(['account', 'category']), 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -133,6 +138,10 @@ class TransactionController extends Controller
             }
 
             $transaction->update($validated);
+
+            // Even for synced, category change may affect budgets
+            $this->checkBudgetsAfterTransaction($transaction);
+
             return response()->json($transaction->load(['account', 'category']));
         }
 
@@ -152,6 +161,10 @@ class TransactionController extends Controller
         }
 
         $transaction->update($validated);
+
+        // 🔔 Check for budget alerts
+        $this->checkBudgetsAfterTransaction($transaction);
+
         return response()->json($transaction->load(['account', 'category']));
     }
 

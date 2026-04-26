@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Transaction;
+use App\Models\Currency;
 
 class Budget extends Model
 {
@@ -46,11 +47,35 @@ class Budget extends Model
         $date = $date ?? now();
         $start = $this->start_date ?? $this->getPeriodStart($date);
         $end = $this->end_date ?? $this->getPeriodEnd($date);
-        return Transaction::where('user_id', $this->user_id)
+        $user = $this->user;
+        $baseCurrency = $user->base_currency ?? 'USD';
+
+        $transactions = Transaction::where('user_id', $this->user_id)
             ->where('category_id', $this->category_id)
             ->where('type', 'expense')
             ->whereBetween('transaction_date', [$start, $end])
-            ->sum('amount');
+            ->with('account')
+            ->get();
+
+        $total = 0;
+        foreach ($transactions as $tx) {
+            $account = $tx->account;
+            $txCurrency = $account->currency;
+            if ($txCurrency === $baseCurrency) {
+                $total += $tx->amount;
+            } else {
+                // Convert to base currency using latest rates
+                $rateFrom = Currency::where('code', $txCurrency)->value('rate_to_usd');
+                $rateTo   = Currency::where('code', $baseCurrency)->value('rate_to_usd');
+                if ($rateFrom && $rateTo) {
+                    $converted = $tx->amount * ($rateFrom / $rateTo);
+                    $total += $converted;
+                } else {
+                    $total += $tx->amount; // fallback
+                }
+            }
+        }
+        return $total;
     }
 
     private function getPeriodStart($date)

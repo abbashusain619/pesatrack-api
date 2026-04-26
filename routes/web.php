@@ -50,6 +50,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/pending', [App\Http\Controllers\Web\RecurringTransactionController::class, 'pending'])->name('recurring.pending');
     Route::patch('/pending/{transaction}/confirm', [App\Http\Controllers\Web\RecurringTransactionController::class, 'confirm'])->name('recurring.confirm');
     Route::patch('/pending/{transaction}/reject', [App\Http\Controllers\Web\RecurringTransactionController::class, 'reject'])->name('recurring.reject');
+
+    // notifications
+    Route::get('/notifications', [App\Http\Controllers\Web\NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [App\Http\Controllers\Web\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/read-all', [App\Http\Controllers\Web\NotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
     
     // Mock Route
     Route::get('/test-balance', function () {

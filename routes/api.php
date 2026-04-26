@@ -57,6 +57,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports', [App\Http\Controllers\Api\ReportController::class, 'data']);
     Route::get('/reports/export', [App\Http\Controllers\Api\ReportController::class, 'export']);
 
+    // Notifications
+    Route::get('/notifications', [App\Http\Controllers\Api\NotificationController::class, 'index']);
+    Route::post('/notifications/{id}/read', [App\Http\Controllers\Api\NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [App\Http\Controllers\Api\NotificationController::class, 'markAllRead']);
+
     // Recurring Transactions
    Route::apiResource('recurring', App\Http\Controllers\Api\RecurringTransactionController::class)
     ->names('api.recurring');

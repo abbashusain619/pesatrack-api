@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Transaction;
+use App\Models\Currency;
 use App\Models\Account;
 use App\Models\Category;
 use Illuminate\Http\Request;
@@ -102,10 +103,10 @@ class ReportController extends Controller
     public function networthData(Request $request)
     {
         $user = auth()->user();
+        $baseCurrency = $user->base_currency ?? 'USD';
         $startDate = $request->filled('start_date') ? Carbon::parse($request->start_date) : now()->subMonths(11)->startOfMonth();
-        $endDate = $request->filled('end_date') ? Carbon::parse($request->end_date) : now()->endOfMonth();
+        $endDate   = $request->filled('end_date') ? Carbon::parse($request->end_date) : now()->endOfMonth();
 
-        // Generate monthly points (last day of each month in range)
         $months = [];
         $current = $startDate->copy()->startOfMonth();
         while ($current <= $endDate) {
@@ -115,31 +116,54 @@ class ReportController extends Controller
 
         $netWorthData = [];
         foreach ($months as $monthEnd) {
-            // For each account, compute balance at month-end via transactions
-            $total = DB::table('accounts')
-                ->where('user_id', $user->id)
-                ->selectRaw('
-                    (
-                        COALESCE((
+            $totalInBase = 0;
+            $accounts = $user->accounts;
+
+            foreach ($accounts as $account) {
+                // Balance at month‑end in account's own currency
+                $balance = DB::table('transactions')
+                    ->where('account_id', $account->id)
+                    ->where('transaction_date', '<=', $monthEnd)
+                    ->selectRaw('COALESCE(SUM(CASE WHEN type = "income" THEN amount ELSE -amount END), 0) as net')
+                    ->value('net');
+                // Account's initial balance is not stored separately; we use a different approach:
+                // Better to use the same SQL as before: current_balance - net transactions after monthEnd
+                $balanceAtDate = DB::table('accounts')
+                    ->where('id', $account->id)
+                    ->selectRaw('
+                        accounts.balance - COALESCE((
                             SELECT SUM(
                                 CASE WHEN t.type = "income" THEN t.amount ELSE -t.amount END
                             ) FROM transactions t
                             WHERE t.account_id = accounts.id
-                            AND t.transaction_date <= ?
-                        ), 0) + accounts.balance
-                    ) as balance', [$monthEnd])
-                ->get()
-                ->sum('balance'); // sum over all accounts
+                            AND t.transaction_date > ?
+                        ), 0) as balance', [$monthEnd])
+                    ->value('balance');
+                if ($balanceAtDate === null) $balanceAtDate = 0;
 
+                // Convert to base currency
+                $accountCurrency = $account->currency;
+                if ($accountCurrency === $baseCurrency) {
+                    $totalInBase += $balanceAtDate;
+                } else {
+                    $rateFrom = Currency::where('code', $accountCurrency)->value('rate_to_usd');
+                    $rateTo   = Currency::where('code', $baseCurrency)->value('rate_to_usd');
+                    if ($rateFrom && $rateTo) {
+                        $totalInBase += $balanceAtDate * ($rateFrom / $rateTo);
+                    } else {
+                        $totalInBase += $balanceAtDate; // fallback
+                    }
+                }
+            }
             $netWorthData[] = [
                 'date' => $monthEnd->format('Y-m-d'),
-                'net_worth' => round($total, 2),
+                'net_worth' => round($totalInBase, 2),
             ];
         }
 
         return response()->json([
             'labels' => collect($netWorthData)->pluck('date'),
-            'data' => collect($netWorthData)->pluck('net_worth'),
+            'data'   => collect($netWorthData)->pluck('net_worth'),
         ]);
     }
 
